@@ -182,8 +182,8 @@ public class selenium {
         WebElement accountWebElement = article.findElement(By.xpath(ACCOUNT_LINK));
         String account = (accountWebElement.getText().replaceAll("\n", " "));
 //        get tweet
-//        WebElement tweetTextWeb = article.findElement(By.xpath(".//div[@data-testid='tweetText']"));
-//        String tweetText = (tweetTextWeb.getText().replaceAll("\n", " "));
+        WebElement tweetTextWeb = article.findElement(By.xpath(".//div[@data-testid='tweetText']"));
+        String tweetText = (tweetTextWeb.getText().replaceAll("\n", " "));
 //        get user tag
 //        WebElement userNameWebElement = article.findElement(By.xpath(USER_NAME_XPATH));
 //        String userName = (userNameWebElement.getText().replaceAll("\n", " "));
@@ -193,12 +193,12 @@ public class selenium {
         //        get reply
 
         WebElement replyWebElement = article.findElement(By.xpath(REPLY_XPATH));
-        int reply;
-        if (replyWebElement.getText().replaceAll("\n", "").equals("")) {
-            reply = 0;
-        } else {
-            reply = (Integer.parseInt(replyWebElement.getText().replaceAll("\n", "")));
-        }
+//        int reply;
+//        if (replyWebElement.getText().replaceAll("\n", "").equals("")) {
+//            reply = 0;
+//        } else {
+//            reply = (Integer.parseInt(replyWebElement.getText().replaceAll("\n", "")));
+//        }
 ////        get retweet
 //        WebElement retweetWebElement = article.findElement(By.xpath(RETWEET_XPATH));
 //        int retweet;
@@ -218,18 +218,28 @@ public class selenium {
 //        System.out.println(account + " " + time + " " + reply + " " + retweet + " " + like);
         WebElement groupWebElement = article.findElement(By.xpath(GROUP_XPATH));
         String group = groupWebElement.getAttribute("aria-label");
-        int retweet = 0;
-        if(group.contains("reply"))
-            retweet = 1;
-        else{
-            if(group.contains("replies"))
-                retweet = 2;
-
+        String[] parts = group.split(",");
+        int reply = 0, retweet = 0, like = 0, bookmark = 0;
+        for (String part : parts) {
+            if(part.contains("repl")){
+                reply = Integer.parseInt(part.replaceAll("[^0-9]", ""));
+                continue;
+            }
+            if(part.contains("repost")){
+                retweet = Integer.parseInt(part.replaceAll("[^0-9]", ""));
+                continue;
+            }
+            if(part.contains("like")){
+                like = Integer.parseInt(part.replaceAll("[^0-9]", ""));
+                continue;
+            }
+            bookmark = Integer.parseInt(part.replaceAll("[^0-9]", ""));
         }
+        System.out.println(account + " " + time + " " + reply + " " + retweet + " " + like + " " + bookmark);
 //        System.out.println(group);
 //        String tweetText = "";
 //        int like = 0;
-//        Tweets.add(new Tweet(account, time, tweetText, reply, retweet, like));
+        Tweets.add(new Tweet(account, time, tweetText, reply, retweet, like));
     }
 
     public static Double scrollAble(WebDriver driver) {
