@@ -246,35 +246,34 @@ public class selenium {
         c.add(Calendar.DATE, dayGap);
         return c.get(Calendar.YEAR) + "-" + c.get(Calendar.MONTH) + "-" + c.get(Calendar.DATE);
     }
+
+    public static WebDriver initBrowser(){
+        System.setProperty("webdriver.chrome.driver", "src/chromedriver-win64/chromedriver.exe");
+        String extensionPath = "E:\\Work\\Project\\Crawl_Tweet\\src\\Adguard.crx";
+        ChromeOptions options = new ChromeOptions();
+        options.addExtensions(new File(extensionPath));
+        options.addArguments("--disable-notifications");
+        WebDriver driver = new ChromeDriver(options);
+        driver.get("https://twitter.com/login");
+        driver.manage().window().maximize();
+        ArrayList<String> tabs = new ArrayList<String>(driver.getWindowHandles());
+        driver.switchTo().window(tabs.get(1));
+        driver.close();
+        driver.switchTo().window(tabs.get(0));
+
+        driver.manage().deleteAllCookies();
+        driver.manage().timeouts().pageLoadTimeout(40, TimeUnit.SECONDS);
+        driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
+
+        threadSleep(1000);
+        return driver;
+    }
+
     public static void run(String keyword, String startDay, String endDay) {
         String tmp = startDay;
+
+        WebDriver driver = initBrowser();
         while (true) {
-//            clearData();
-            //read keyword frome file
-            String query = queryMaker(keyword, startDay, MIN_FAVES, MIN_RETWEET, MIN_REPLY, FILTER_REPLIES);
-            System.setProperty("webdriver.chrome.driver", "src/chromedriver-win64/chromedriver.exe");
-            String extensionPath = "E:\\Work\\Project\\Crawl_Tweet\\src\\Adguard.crx";
-            ChromeOptions options = new ChromeOptions();
-//            options.addArguments("load-extension=" + extensionPath);
-            options.addExtensions(new File(extensionPath));
-            options.addArguments("--disable-notifications");
-            WebDriver driver = new ChromeDriver(options);
-
-
-//            WebDriver driver = new ChromeDriver(capabilities);
-//            WebDriver driver = new ChromeDriver(options);
-            driver.get("https://twitter.com/login");
-            driver.manage().window().maximize();
-
-            ArrayList<String> tabs = new ArrayList<String>(driver.getWindowHandles());
-            driver.switchTo().window(tabs.get(1));
-            driver.close();
-            driver.switchTo().window(tabs.get(0));
-
-            driver.manage().deleteAllCookies();
-            driver.manage().timeouts().pageLoadTimeout(40, TimeUnit.SECONDS);
-            driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
-//            String currentWindowHandle = driver.getWindowHandle();
 
             threadSleep(1000);
             login(driver, pUsername, pPassword);
