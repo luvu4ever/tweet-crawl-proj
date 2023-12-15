@@ -60,10 +60,6 @@ public class selenium {
         emailField.sendKeys(username);
         driver.findElement(By.xpath("//span[contains(text(),'Next')]")).click();
 
-//        WebElement usernameField = driver.findElement(By.xpath("//input[@name='text']"));
-//        usernameField.sendKeys(username);
-//        driver.findElement(By.xpath("//span[contains(text(),'Next')]")).click();
-
         WebElement passwordField = driver.findElement(By.xpath("//input[@name='password']"));
         passwordField.sendKeys(password);
         driver.findElement(By.xpath("//span[contains(text(),'Log in')]")).click();
@@ -73,26 +69,6 @@ public class selenium {
         WebElement searchBox = driver.findElement(By.xpath("//input[@aria-label=\"Search query\"]"));
         searchBox.sendKeys(keyword);
         searchBox.sendKeys(Keys.ENTER);
-    }
-
-    private static boolean isAd(WebElement article, String keyword) {
-//        //tweet text have no keyword -> ad
-//        //is ad by filter through tweet text
-        WebElement tweet = article.findElement(By.xpath(".//div[@data-testid='tweetText']"));
-        String text = tweet.getText();
-        if (text.toLowerCase().contains(keyword.toLowerCase()))
-            return false;
-        return true;
-//
-//        //is ad by have no time -> ad
-//        try{
-//            WebElement time = article.findElement(By.xpath(TIME_XPATH));
-//        }catch (Exception e){
-//            e.printStackTrace();
-//            return true;
-//        }
-//        return false;
-//
     }
 
     private static boolean isAd(WebElement article){
@@ -131,24 +107,6 @@ public class selenium {
         return query;
     }
 
-//    public static void printToCSV(String keyword) {
-//        File csvOutputFile = new File(keyword + ".csv");
-//        try (PrintWriter pw = new PrintWriter(csvOutputFile)) {
-//            for (int i = 0; i < UserTags.size(); i++) {
-//                pw.printf("%s,%s,%d,%d,%d\n", TimeStamps.get(i), Accounts.get(i), Replys.get(i), reTweets.get(i), Likes.get(i));
-//            }
-//            pw.close();
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//        for (int i = 0; i < Accounts.size(); i++) {
-//            System.out.println(Accounts.get(i) + "," + TimeStamps.get(i) + "," + Replys.get(i) + "," + reTweets.get(i) + "," + Likes.get(i));
-//        }
-////        System.out.println(UserTags.size() + " " + TimeStamps.size() + " " + Tweets.size() + " " + Replys.size() + " " + reTweets.size() + " " + Likes.size());
-//
-//    }
-//
-//
 //    //print data to a json file
 //    public static void printToJSON(String keyword){
 //        File jsonOutputFile = new File(keyword + ".json");
@@ -219,13 +177,6 @@ public class selenium {
     }
 
     public static Double scrollAble(WebDriver driver) {
-//        jsExecutor.executeScript(SCROLL_SCRIPT);
-//        try {
-//            Thread.sleep(SCROLL_DELAY_MS);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-//        return 0L;
         JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
         int scrollAttempt = 0;
         while (true) {
@@ -235,7 +186,6 @@ public class selenium {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-//            Double currPosition = (Double) jsExecutor.executeScript("return window.pageYOffset;");
             Object currPositionObject = jsExecutor.executeScript("return window.pageYOffset;");
             if (currPositionObject == null)
                 return -1.0;
@@ -269,12 +219,6 @@ public class selenium {
             //read keyword frome file
             String query = queryMaker(keyword, startDay, MIN_FAVES, MIN_RETWEET, MIN_REPLY, FILTER_REPLIES);
             System.setProperty("webdriver.chrome.driver", "src/chromedriver-win64/chromedriver.exe");
-//            ChromeOptions options = new ChromeOptions();
-//            options.addArguments("--disable-notifications");
-//            options.addArguments("--disable-popup-blocking");
-////        options.addArguments("--headless");
-//            DesiredCapabilities capabilities = new DesiredCapabilities();
-//            capabilities.setCapability(ChromeOptions.CAPABILITY, options);
             String extensionPath = "E:\\Work\\Project\\Crawl_Tweet\\src\\Adguard.crx";
             ChromeOptions options = new ChromeOptions();
 //            options.addArguments("load-extension=" + extensionPath);
@@ -288,7 +232,7 @@ public class selenium {
             driver.get("https://twitter.com/login");
             driver.manage().window().maximize();
 
-//        driver.manage().deleteAllCookies();
+            driver.manage().deleteAllCookies();
             driver.manage().timeouts().pageLoadTimeout(40, TimeUnit.SECONDS);
             driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
             String currentWindowHandle = driver.getWindowHandle();
@@ -297,12 +241,9 @@ public class selenium {
             login(driver, pUsername, pPassword);
             threadSleep(1000);
             search(driver, query);
-//        //select profile
-//        driver.findElement(By.xpath("//span[contains(text(),'People')]")).click();
-//        WebElement profile = driver.findElement(By.xpath("//*[@id='react-root']/div/div/div[2]/main/div/div/div/div/div/div[3]/section/div/div/div[1]/div/div/div/div/div[2]/div/div[1]/div/div[1]/a/div/div[1]/span/span"));
-//        profile.click();
-            threadSleep(1000);
-            driver.findElement(By.xpath("//span[contains(text(),'Latest')]")).click();
+
+//            threadSleep(1000);
+//            driver.findElement(By.xpath("//span[contains(text(),'Latest')]")).click();
 
 //            Object lastPositionObject = jsExecutor.executeScript("return window.pageYOffset;");
 //            lastPosition = Double.parseDouble(lastPositionObject.toString());
