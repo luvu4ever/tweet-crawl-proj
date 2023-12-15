@@ -224,7 +224,6 @@ public class selenium {
         else{
             if(group.contains("replies"))
                 retweet = 2;
-
         }
 //        System.out.println(group);
 //        String tweetText = "";
