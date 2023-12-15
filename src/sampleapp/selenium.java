@@ -11,8 +11,7 @@ import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
-import java.io.File;
-import java.io.PrintWriter;
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -22,8 +21,8 @@ public class selenium {
     private static final int MIN_FAVES = 5;
     private static final int MIN_RETWEET = 0;
     private static final int MIN_REPLY = 0;
-    private static final int FILTER_REPLIES = 0;
-    private static final int MEET_RELOAD_CONDITION = 1000;
+    private static final int FILTER_REPLIES = 1;
+    private static final double MEET_RELOAD_CONDITION = 1000;
     private static final String TWEET_XPATH = "//article[@data-testid='tweet']";
     private static final String USER_NAME_XPATH = ".//div[@data-testid='User-Name']/div";
     private static final String RETWEET_XPATH = ".//div[@data-testid='retweet']";
@@ -31,6 +30,9 @@ public class selenium {
     private static final String REPLY_XPATH = ".//div[@data-testid='reply']";
     private static final String TIME_XPATH = ".//time";
     private static final String ACCOUNT_LINK = ".//span[contains(text(),'@')]";
+
+    private static final String GROUP_XPATH = ".//div[@role='group']";
+
     private static final String SCROLL_SCRIPT = "window.scrollTo(0, document.body.scrollHeight);";
     private static final int SCROLL_DELAY_MS = 3000;
     private static final int MAX_SCROLL_ATTEMPTS = 3;
@@ -39,13 +41,13 @@ public class selenium {
     public static List<Tweet> Tweets = new ArrayList<>();
 
     public static String pUsername = "crawl_nigh12359";
-//    public static String pEmail = "usetocrawl1@gmail.com";
+    //    public static String pEmail = "usetocrawl1@gmail.com";
     public static String pPassword = "onlyforcrawl1";
 
     public static void main(String[] args) {
         //read keyword from file
         String keyword = "boredapeyc";
-        run(keyword, "2021-08-01", "2021-08-04");
+        run(keyword, "2021-08-04", "2021-08-07");
     }
 
     private static void threadSleep(int ms) {
@@ -56,7 +58,35 @@ public class selenium {
         }
     }
 
+    private static void changeAccount() {
+        //change account, read username and password in different line
+        BufferedReader reader;
+        try {
+            reader = new BufferedReader(new FileReader("src/sampleapp/account.txt"));
+            String line = reader.readLine();
+            if (line == null) {
+                reader.close();
+                reader = new BufferedReader(new FileReader("src/sampleapp/account.txt"));
+                line = reader.readLine();
+                pUsername = line;
+                line = reader.readLine();
+                pPassword = line;
+            } else {
+                while (line != null) {
+                    pUsername = line;
+                    line = reader.readLine();
+                    pPassword = line;
+                    line = reader.readLine();
+                }
+            }
+            reader.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     private static void login(WebDriver driver, String username, String password) {
+        driver.get("https://twitter.com/login");
         WebElement emailField = driver.findElement(By.xpath("//input[@name='text']"));
         emailField.sendKeys(username);
         driver.findElement(By.xpath("//span[contains(text(),'Next')]")).click();
@@ -66,14 +96,18 @@ public class selenium {
         driver.findElement(By.xpath("//span[contains(text(),'Log in')]")).click();
     }
 
-    private static void search(WebDriver driver, String keyword) {
-        WebElement searchBox = driver.findElement(By.xpath("//input[@aria-label=\"Search query\"]"));
-        searchBox.sendKeys(keyword);
-        searchBox.sendKeys(Keys.ENTER);
+    private static void logout(WebDriver driver) {
+        driver.get("https://twitter.com/logout");
+        driver.findElement(By.xpath("//span[contains(text(),'Log out')]")).click();
     }
 
-    private static boolean isAd(WebElement article){
-        if(article.isDisplayed())
+    private static void search(WebDriver driver, String keyword, String since, int min_faves, int min_retweets, int min_replies, int filter_replies) {
+        String search_url = "https://twitter.com/search?q=" + queryMaker(keyword, since, min_faves, min_retweets, min_replies, filter_replies) + "&src=typed_query&f=live";
+        driver.get(search_url);
+    }
+
+    private static boolean isAd(WebElement article) {
+        if (article.isDisplayed())
             return false;
         return true;
     }
@@ -92,19 +126,19 @@ public class selenium {
             c.add(Calendar.DATE, DAY_GAP);
             until = c.get(Calendar.YEAR) + "-" + c.get(Calendar.MONTH) + "-" + c.get(Calendar.DATE);
         }
-        String query = keyword;
-        if(min_faves > 0)
-            query += " min_faves:" + min_faves;
-        if(min_retweets > 0)
-            query += " min_retweets:" + min_retweets;
-        if(min_replies > 0)
-            query += " min_replies:" + min_replies;
-        if(filter_replies == 1)
-            query += " -filter:replies";
+        String query = keyword + "%20";
+        if (min_faves > 0)
+            query += "min_faves%3A" + min_faves + "%20";
+        if (min_retweets > 0)
+            query += "min_retweets%3A" + min_retweets + "%20";
+        if (min_replies > 0)
+            query += "min_replies%3A" + min_replies + "%20";
+        if (filter_replies == 1)
+            query += "-filter%3Areplies%20";
         if (since != null)
-            query += " since:" + since;
+            query += "since%3A" + since + "%20";
         if (until != null)
-            query += " until:" + until;
+            query += " until%3A" + until + "%20";
         return query;
     }
 
@@ -137,9 +171,9 @@ public class selenium {
 //    }
 
     //print to screen
-    public static void printToScreen(){
-        for(int i = 0; i < Tweets.size(); i++){
-            System.out.println(Tweets.get(i).getAccount() + " " + Tweets.get(i).getTimeStamp()  + " " + Tweets.get(i).getReply() + " " + Tweets.get(i).getRetweet() + " " + Tweets.get(i).getLike());
+    public static void printToScreen() {
+        for (int i = 0; i < Tweets.size(); i++) {
+            System.out.println(Tweets.get(i).getAccount() + " " + Tweets.get(i).getTimeStamp() + " " + Tweets.get(i).getReply() + " " + Tweets.get(i).getRetweet() + " " + Tweets.get(i).getLike());
         }
     }
 
@@ -148,8 +182,8 @@ public class selenium {
         WebElement accountWebElement = article.findElement(By.xpath(ACCOUNT_LINK));
         String account = (accountWebElement.getText().replaceAll("\n", " "));
 //        get tweet
-        WebElement tweetTextWeb = article.findElement(By.xpath(".//div[@data-testid='tweetText']"));
-        String tweetText = (tweetTextWeb.getText().replaceAll("\n", " "));
+//        WebElement tweetTextWeb = article.findElement(By.xpath(".//div[@data-testid='tweetText']"));
+//        String tweetText = (tweetTextWeb.getText().replaceAll("\n", " "));
 //        get user tag
 //        WebElement userNameWebElement = article.findElement(By.xpath(USER_NAME_XPATH));
 //        String userName = (userNameWebElement.getText().replaceAll("\n", " "));
@@ -165,23 +199,37 @@ public class selenium {
         } else {
             reply = (Integer.parseInt(replyWebElement.getText().replaceAll("\n", "")));
         }
-//        get retweet
-        WebElement retweetWebElement = article.findElement(By.xpath(RETWEET_XPATH));
-        int retweet;
-        if (retweetWebElement.getText().replaceAll("\n", "").equals("")) {
-            retweet = 0;
-        } else {
-            retweet = (Integer.parseInt(retweetWebElement.getText().replaceAll("\n", "")));
+////        get retweet
+//        WebElement retweetWebElement = article.findElement(By.xpath(RETWEET_XPATH));
+//        int retweet;
+//        if (retweetWebElement.getText().replaceAll("\n", "").equals("")) {
+//            retweet = 0;
+//        } else {
+//            retweet = (Integer.parseInt(retweetWebElement.getText().replaceAll("\n", "")));
+//        }
+////        get like
+//        int like;
+//        WebElement likeWebElement = article.findElement(By.xpath(LIKE_XPATH));
+//        if (likeWebElement.getText().replaceAll("\n", "").equals("")) {
+//            like = 0;
+//        } else {
+//            like = (Integer.parseInt(likeWebElement.getText().replaceAll("\n", "")));
+//        }
+//        System.out.println(account + " " + time + " " + reply + " " + retweet + " " + like);
+        WebElement groupWebElement = article.findElement(By.xpath(GROUP_XPATH));
+        String group = groupWebElement.getAttribute("aria-label");
+        int retweet = 0;
+        if(group.contains("reply"))
+            retweet = 1;
+        else{
+            if(group.contains("replies"))
+                retweet = 2;
+
         }
-//        get like
-        int like;
-        WebElement likeWebElement = article.findElement(By.xpath(LIKE_XPATH));
-        if (likeWebElement.getText().replaceAll("\n", "").equals("")) {
-            like = 0;
-        } else {
-            like = (Integer.parseInt(likeWebElement.getText().replaceAll("\n", "")));
-        }
-        Tweets.add(new Tweet(account, time, tweetText, reply, retweet, like));
+//        System.out.println(group);
+//        String tweetText = "";
+//        int like = 0;
+//        Tweets.add(new Tweet(account, time, tweetText, reply, retweet, like));
     }
 
     public static Double scrollAble(WebDriver driver) {
@@ -213,7 +261,7 @@ public class selenium {
     public static Double scrollDown(WebDriver driver) {
         JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
         int scrollAttempt = 0;
-        while(true){
+        while (true) {
             jsExecutor.executeScript(SCROLL_SCRIPT);
             try {
                 Thread.sleep(SCROLL_DELAY_MS);
@@ -226,17 +274,20 @@ public class selenium {
             Double currPosition = Double.parseDouble(currPositionObject.toString());
             System.out.println(currPosition);
             if (!lastPosition.equals(currPosition)) {
+                if(currPosition == 59808.0)
+                    System.out.println("error over here");
                 lastPosition = currPosition;
                 return currPosition;
             }
+            System.out.println("error over here");
             scrollAttempt++;
-            if (scrollAttempt >= MAX_SCROLL_ATTEMPTS) {
+            if (scrollAttempt > MAX_SCROLL_ATTEMPTS) {
                 return -1.0;
             }
         }
     }
 
-    public static String addDayToString(String startDay, int dayGap){
+    public static String addDayToString(String startDay, int dayGap) {
         String[] sinceSplit = startDay.split("-");
         int year = Integer.parseInt(sinceSplit[0]);
         int month = Integer.parseInt(sinceSplit[1]);
@@ -246,43 +297,42 @@ public class selenium {
         c.add(Calendar.DATE, dayGap);
         return c.get(Calendar.YEAR) + "-" + c.get(Calendar.MONTH) + "-" + c.get(Calendar.DATE);
     }
+
+    public static WebDriver initBrowser() {
+        System.setProperty("webdriver.chrome.driver", "src/chromedriver-win64/chromedriver.exe");
+        String extensionPath = "E:\\Work\\Project\\Crawl_Tweet\\src\\Adguard.crx";
+        ChromeOptions options = new ChromeOptions();
+        options.addExtensions(new File(extensionPath));
+        options.addArguments("--disable-notifications");
+        WebDriver driver = new ChromeDriver(options);
+        driver.manage().window().maximize();
+        ArrayList<String> tabs = new ArrayList<String>(driver.getWindowHandles());
+        driver.switchTo().window(tabs.get(1));
+        driver.close();
+        driver.switchTo().window(tabs.get(0));
+
+        driver.manage().deleteAllCookies();
+        driver.manage().timeouts().pageLoadTimeout(40, TimeUnit.SECONDS);
+        driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
+
+        threadSleep(1000);
+        return driver;
+    }
+
     public static void run(String keyword, String startDay, String endDay) {
         String tmp = startDay;
+
+        WebDriver driver = initBrowser();
         while (true) {
-//            clearData();
-            //read keyword frome file
-            String query = queryMaker(keyword, startDay, MIN_FAVES, MIN_RETWEET, MIN_REPLY, FILTER_REPLIES);
-            System.setProperty("webdriver.chrome.driver", "src/chromedriver-win64/chromedriver.exe");
-            String extensionPath = "E:\\Work\\Project\\Crawl_Tweet\\src\\Adguard.crx";
-            ChromeOptions options = new ChromeOptions();
-//            options.addArguments("load-extension=" + extensionPath);
-            options.addExtensions(new File(extensionPath));
-            options.addArguments("--disable-notifications");
-            WebDriver driver = new ChromeDriver(options);
-
-
-//            WebDriver driver = new ChromeDriver(capabilities);
-//            WebDriver driver = new ChromeDriver(options);
-            driver.get("https://twitter.com/login");
-            driver.manage().window().maximize();
-
-            ArrayList<String> tabs = new ArrayList<String>(driver.getWindowHandles());
-            driver.switchTo().window(tabs.get(1));
-            driver.close();
-            driver.switchTo().window(tabs.get(0));
-
-            driver.manage().deleteAllCookies();
-            driver.manage().timeouts().pageLoadTimeout(40, TimeUnit.SECONDS);
-            driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
-//            String currentWindowHandle = driver.getWindowHandle();
 
             threadSleep(1000);
             login(driver, pUsername, pPassword);
+            threadSleep(5000);
+//            search(driver, query);
+            search(driver, keyword, startDay, MIN_FAVES, MIN_RETWEET, MIN_REPLY, FILTER_REPLIES);
             threadSleep(1000);
-            search(driver, query);
 
-            threadSleep(1000);
-            driver.findElement(By.xpath("//span[contains(text(),'Latest')]")).click();
+//            driver.findElement(By.xpath("//span[contains(text(),'Latest')]")).click();
 
 //            Object lastPositionObject = jsExecutor.executeScript("return window.pageYOffset;");
 //            lastPosition = Double.parseDouble(lastPositionObject.toString());
@@ -299,14 +349,14 @@ public class selenium {
 //                        getTweetData(article);
 //                    }
 //                }
-                while(lastPosition != -1.0){
+                while (!lastPosition.equals(-1.0)) {
+                    lastPosition = scrollAble(driver);
                     List<WebElement> articles = driver.findElements(By.xpath(TWEET_XPATH));
                     for (WebElement article : articles) {
                         if (isAd(article))
                             continue;
                         getTweetData(article);
                     }
-                    lastPosition = scrollAble(driver);
                     System.out.println(lastPosition);
                 }
             } catch (Exception e) {
@@ -315,14 +365,18 @@ public class selenium {
             } finally {
 //                driver.quit();
             }
-            if(lastPosition < MEET_RELOAD_CONDITION){
-                //change account
-//                continue;
+            printToScreen();
+            if (lastPosition.compareTo(MEET_RELOAD_CONDITION * 1.0) < 0) {
+                logout(driver);
+                threadSleep(1000);
+                changeAccount();
+                threadSleep(1000);
+                login(driver, pUsername, pPassword);
+                continue;
             }
             startDay = addDayToString(startDay, DAY_GAP + 1);
-            printToScreen();
 //            printToCSV(keyword);
-            if(startDay.compareTo(endDay) >= 0){
+            if (startDay.compareTo(endDay) >= 0) {
 //                printToCSV(keyword);
                 break;
             }
