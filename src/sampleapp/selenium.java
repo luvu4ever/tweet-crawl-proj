@@ -22,7 +22,8 @@ public class selenium {
     private static final int MIN_FAVES = 5;
     private static final int MIN_RETWEET = 0;
     private static final int MIN_REPLY = 0;
-    private static final int FILTER_REPLIES = 1;
+    private static final int FILTER_REPLIES = 0;
+    private static final int MEET_RELOAD_CONDITION = 1000;
     private static final String TWEET_XPATH = "//article[@data-testid='tweet']";
     private static final String USER_NAME_XPATH = ".//div[@data-testid='User-Name']/div";
     private static final String RETWEET_XPATH = ".//div[@data-testid='retweet']";
@@ -135,6 +136,13 @@ public class selenium {
 //        }
 //    }
 
+    //print to screen
+    public static void printToScreen(){
+        for(int i = 0; i < Tweets.size(); i++){
+            System.out.println(Tweets.get(i).getAccount() + " " + Tweets.get(i).getTimeStamp()  + " " + Tweets.get(i).getReply() + " " + Tweets.get(i).getRetweet() + " " + Tweets.get(i).getLike());
+        }
+    }
+
     private static void getTweetData(WebElement article) {
 //        get account href
         WebElement accountWebElement = article.findElement(By.xpath(ACCOUNT_LINK));
@@ -190,13 +198,39 @@ public class selenium {
             if (currPositionObject == null)
                 return -1.0;
             Double currPosition = Double.parseDouble(currPositionObject.toString());
+//            System.out.println(currPosition);
+            if (!lastPosition.equals(currPosition)) {
+                lastPosition = currPosition;
+                return currPosition;
+            }
+            scrollAttempt++;
+            if (scrollAttempt >= MAX_SCROLL_ATTEMPTS) {
+                return -1.0;
+            }
+        }
+    }
+
+    public static Double scrollDown(WebDriver driver) {
+        JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
+        int scrollAttempt = 0;
+        while(true){
+            jsExecutor.executeScript(SCROLL_SCRIPT);
+            try {
+                Thread.sleep(SCROLL_DELAY_MS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            Object currPositionObject = jsExecutor.executeScript("return window.pageYOffset;");
+            if (currPositionObject == null)
+                return -1.0;
+            Double currPosition = Double.parseDouble(currPositionObject.toString());
             System.out.println(currPosition);
             if (!lastPosition.equals(currPosition)) {
                 lastPosition = currPosition;
                 return currPosition;
             }
             scrollAttempt++;
-            if (scrollAttempt > MAX_SCROLL_ATTEMPTS) {
+            if (scrollAttempt >= MAX_SCROLL_ATTEMPTS) {
                 return -1.0;
             }
         }
@@ -232,43 +266,61 @@ public class selenium {
             driver.get("https://twitter.com/login");
             driver.manage().window().maximize();
 
+            ArrayList<String> tabs = new ArrayList<String>(driver.getWindowHandles());
+            driver.switchTo().window(tabs.get(1));
+            driver.close();
+            driver.switchTo().window(tabs.get(0));
+
             driver.manage().deleteAllCookies();
             driver.manage().timeouts().pageLoadTimeout(40, TimeUnit.SECONDS);
             driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
-            String currentWindowHandle = driver.getWindowHandle();
-            driver.switchTo().window(currentWindowHandle);
+//            String currentWindowHandle = driver.getWindowHandle();
+
             threadSleep(1000);
             login(driver, pUsername, pPassword);
             threadSleep(1000);
             search(driver, query);
 
-//            threadSleep(1000);
-//            driver.findElement(By.xpath("//span[contains(text(),'Latest')]")).click();
+            threadSleep(1000);
+            driver.findElement(By.xpath("//span[contains(text(),'Latest')]")).click();
 
 //            Object lastPositionObject = jsExecutor.executeScript("return window.pageYOffset;");
 //            lastPosition = Double.parseDouble(lastPositionObject.toString());
 //        Double lastPosition = (Double) jsExecutor.executeScript("return window.pageYOffset;");
-            Double lastPosition = -1.0;
+            Double lastPosition = -2.0;
             try {
-//            while (lastPosition != -1L) {
-                while (scrollAble(driver) != -1.0) {
+////            while (lastPosition != -1L) {
+//                while (scrollAble(driver) != -1.0) {
+//                    List<WebElement> articles = driver.findElements(By.xpath(TWEET_XPATH));
+//                    for (WebElement article : articles) {
+//                        if (isAd(article))
+//                            continue;
+////                    get data from tweet article
+//                        getTweetData(article);
+//                    }
+//                }
+                while(lastPosition != -1.0){
                     List<WebElement> articles = driver.findElements(By.xpath(TWEET_XPATH));
                     for (WebElement article : articles) {
                         if (isAd(article))
                             continue;
-//                    get data from tweet article
                         getTweetData(article);
                     }
-//                    if (UserTags.size() > MAX_TWEETS)
-//                        break;
+                    lastPosition = scrollAble(driver);
+                    System.out.println(lastPosition);
                 }
             } catch (Exception e) {
                 Thread.currentThread().interrupt();
                 e.printStackTrace();
             } finally {
-                driver.quit();
+//                driver.quit();
+            }
+            if(lastPosition < MEET_RELOAD_CONDITION){
+                //change account
+//                continue;
             }
             startDay = addDayToString(startDay, DAY_GAP + 1);
+            printToScreen();
 //            printToCSV(keyword);
             if(startDay.compareTo(endDay) >= 0){
 //                printToCSV(keyword);
