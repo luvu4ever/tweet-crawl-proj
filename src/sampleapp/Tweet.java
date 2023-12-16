@@ -5,6 +5,7 @@ public class Tweet {
     String timeStamp;
     String tweetText;
     int reply;
+    String tweetId;
 
     public String getAccount() {
         return account;
