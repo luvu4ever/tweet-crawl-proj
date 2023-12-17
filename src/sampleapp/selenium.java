@@ -20,9 +20,8 @@ public class selenium {
     private static final int MIN_RETWEET = 0;
     private static final int MIN_REPLY = 0;
     private static final int FILTER_REPLIES = 0;
-    private static final double MEET_RELOAD_CONDITION = 100000;
-
-    private static final double FIRST_RELOAD_CONDITION = 1000;
+    private static final Double MEET_RELOAD_CONDITION = 100000.0;
+    private static final Double FIRST_RELOAD_CONDITION = 1000.0;
     private static final String TWEET_XPATH = "//article[@data-testid='tweet']";
     private static final String USER_NAME_XPATH = ".//div[@data-testid='User-Name']/div";
     private static final String RETWEET_XPATH = ".//div[@data-testid='retweet']";
@@ -31,6 +30,8 @@ public class selenium {
     private static final String TIME_XPATH = ".//time";
     private static final String ACCOUNT_TAG = ".//span[contains(text(),'@')]";
     private static final String LINK_XPATH = "./div/div/div[2]/div[2]/div[1]/div/div[1]/div/div/div[2]/div/div[3]/a";
+
+    private static final String RELOAD_XPATH = "//div[@data-testid='primaryColumn']//span[contains(text(),'Retry')]";
 
 
     private static final String GROUP_XPATH = ".//div[@role='group']";
@@ -47,9 +48,9 @@ public class selenium {
     public static List<Tweet> Tweets = new ArrayList<>();
     public static Map<String, Integer> TweetIdMap = new HashMap<>();
 
-    public static String pUsername = "crawl_nigh12359";
+    public static String pUsername;
     //    public static String pEmail = "usetocrawl1@gmail.com";
-    public static String pPassword = "onlyforcrawl1";
+    public static String pPassword;
 
     public static void main(String[] args) {
         //read keyword from file
@@ -63,34 +64,6 @@ public class selenium {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-    }
-
-    private static void changeAccount() {
-        //change account, read username and password in different line
-        BufferedReader reader;
-        try {
-            reader = new BufferedReader(new FileReader("src/sampleapp/account.txt"));
-            String line = reader.readLine();
-            if (line == null) {
-                reader.close();
-                reader = new BufferedReader(new FileReader("src/sampleapp/account.txt"));
-                line = reader.readLine();
-                pUsername = line;
-                line = reader.readLine();
-                pPassword = line;
-            } else {
-                while (line != null) {
-                    pUsername = line;
-                    line = reader.readLine();
-                    pPassword = line;
-                    line = reader.readLine();
-                }
-            }
-            reader.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        threadSleep(LONG_DELAY_MS);
     }
 
     private static void login(WebDriver driver, String username, String password) {
@@ -123,7 +96,6 @@ public class selenium {
             return false;
         return true;
     }
-
 
     private static String queryMaker(String keyword, String since, int min_faves, int min_retweets, int min_replies, int filter_replies) {
         //until = since + 3 days
@@ -196,7 +168,6 @@ public class selenium {
         String tweetId = linkParts[linkParts.length - 1];
         if(TweetIdMap.get(tweetId) != null && TweetIdMap.get(tweetId).equals(1))
             return;
-        System.out.println("new tweet");
         TweetIdMap.put(tweetId, 1);
 //        get account href
         WebElement accountWebElement = article.findElement(By.xpath(ACCOUNT_TAG));
@@ -250,7 +221,6 @@ public class selenium {
             if (currPositionObject == null)
                 return -1.0;
             Double currPosition = Double.parseDouble(currPositionObject.toString());
-            System.out.println(currPosition);
             if(currPosition.compareTo(AMOUNT_PER_SCROLL) < 0)
                 return -1.0;
             if (!lastPosition.equals(currPosition)) {
@@ -296,9 +266,25 @@ public class selenium {
         return driver;
     }
 
+    private static boolean reloadButtonDetected(WebDriver driver){
+        try{
+            WebElement reloadButton = driver.findElement(By.xpath(RELOAD_XPATH));
+//            reloadButton.click();
+            return true;
+        }
+        catch (Exception e){
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public static void run(String keyword, String startDay, String endDay) {
         String tmp = startDay;
         int finished = 0;
+        AccountManager accountManager = new AccountManager("src/sampleapp/account.txt");
+        String accountDetails[] = accountManager.changeAccount();
+        pUsername = accountDetails[0];
+        pPassword = accountDetails[1];
         WebDriver driver = initBrowser();
         login(driver, pUsername, pPassword);
         while (startDay.compareTo(endDay) <= 0) {
@@ -311,7 +297,7 @@ public class selenium {
                 while (true) {
                     lastPosition = currPosition;
                     currPosition = scrollDown(driver);
-                    if(currPosition.equals(-1.0)){
+                    if(currPosition.compareTo(FIRST_RELOAD_CONDITION * 1.0) < 0){
                         break;
                     }
                     List<WebElement> articles = driver.findElements(By.xpath(TWEET_XPATH));
@@ -330,25 +316,35 @@ public class selenium {
             }
 //            printToScreen();
             System.out.println("last position: " + lastPosition + " " + currPosition);
-            if (lastPosition.compareTo(FIRST_RELOAD_CONDITION * 1.0) < 0) {
+            if(reloadButtonDetected(driver)){
                 logout(driver);
-                changeAccount();
+                accountDetails = accountManager.changeAccount();
+                pUsername = accountDetails[0];
+                pPassword = accountDetails[1];
+                System.out.println("change account to " + pUsername + " " + pPassword);
+                driver.manage().deleteAllCookies();
                 login(driver, pUsername, pPassword);
                 continue;
             }
-            try{
-                WebElement reloadButton = driver.findElement(By.xpath("//div[@data-testid='primaryColumn']//div[@role='button']"));
-                finished = 0;
-            }
-            catch (Exception e){
-                e.printStackTrace();
-            }
-            if(finished == 0){
-                logout(driver);
-                changeAccount();
-                login(driver, pUsername, pPassword);
-                continue;
-            }
+//            if (lastPosition.compareTo(FIRST_RELOAD_CONDITION * 1.0) < 0) {
+//                logout(driver);
+//                changeAccount();
+//                login(driver, pUsername, pPassword);
+//                continue;
+//            }
+//            try{
+//                WebElement reloadButton = driver.findElement(By.xpath("//div[@data-testid='primaryColumn']//div[@role='button']"));
+//                finished = 0;
+//            }
+//            catch (Exception e){
+//                e.printStackTrace();
+//            }
+//            if(finished == 0){
+//                logout(driver);
+//                changeAccount();
+//                login(driver, pUsername, pPassword);
+//                continue;
+//            }
             startDay = addDayToString(startDay, DAY_GAP + 1);
             System.out.println(startDay + " " + endDay);
 //            printToCSV(keyword);
