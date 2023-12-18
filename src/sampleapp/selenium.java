@@ -33,7 +33,6 @@ public class selenium {
 
     private static final String RELOAD_XPATH = "//div[@data-testid='primaryColumn']//span[contains(text(),'Retry')]";
 
-
     private static final String GROUP_XPATH = ".//div[@role='group']";
 
 //    private static final String SCROLL_SCRIPT = "window.scrollTo(0, document.body.scrollHeight);";
@@ -55,7 +54,7 @@ public class selenium {
     public static void main(String[] args) {
         //read keyword from file
         String keyword = "boredapeyc";
-        run(keyword, "2021-08-01", "2021-09-07");
+        run(keyword, "2023-12-15", "2023-12-18");
     }
 
     private static void threadSleep(int ms) {
@@ -99,17 +98,7 @@ public class selenium {
 
     private static String queryMaker(String keyword, String since, int min_faves, int min_retweets, int min_replies, int filter_replies) {
         //until = since + 3 days
-        String until = null;
-        if (since != null) {
-            String[] sinceSplit = since.split("-");
-            int year = Integer.parseInt(sinceSplit[0]);
-            int month = Integer.parseInt(sinceSplit[1]);
-            int day = Integer.parseInt(sinceSplit[2]);
-            Calendar c = Calendar.getInstance();
-            c.set(year, month, day);
-            c.add(Calendar.DATE, DAY_GAP);
-            until = c.get(Calendar.YEAR) + "-" + c.get(Calendar.MONTH) + "-" + c.get(Calendar.DATE);
-        }
+        String until = addDayToString(since, DAY_GAP);
         String query = keyword + "%20";
         if (min_faves > 0)
             query += "min_faves%3A" + min_faves + "%20";
@@ -127,66 +116,59 @@ public class selenium {
     }
 
 //    //print data to a json file
-//    public static void printToJSON(String keyword){
-//        File jsonOutputFile = new File(keyword + ".json");
-//        try{
-//            PrintWriter pw = new PrintWriter(jsonOutputFile);
-//            pw.println("{");
-//            pw.println("\"data\": [");
-//            for(int i = 0; i < UserTags.size(); i++){
-//                pw.println("{");
-//                pw.println("\"time\": \"" + TimeStamps.get(i) + "\",");
-//                pw.println("\"account\": \"" + Accounts.get(i) + "\",");
-//                pw.println("\"tweet\": \"" + Tweets.get(i) + "\",");
-//                pw.println("\"reply\": \"" + Replys.get(i) + "\",");
-//                pw.println("\"retweet\": \"" + reTweets.get(i) + "\",");
-//                pw.println("\"like\": \"" + Likes.get(i) + "\"");
-//                if(i == UserTags.size() - 1)
-//                    pw.println("}");
-//                else
-//                    pw.println("},");
-//            }
-//            pw.println("]");
-//            pw.println("}");
-//            pw.close();
-//        } catch(Exception e){
-//            e.printStackTrace();
-//        }
-//    }
 
     //print to screen
     public static void printToScreen() {
         for (int i = 0; i < Tweets.size(); i++) {
-            System.out.println(Tweets.get(i).getAccount() + " " + Tweets.get(i).getTimeStamp() + " " + Tweets.get(i).getReply() + " " + Tweets.get(i).getRetweet() + " " + Tweets.get(i).getLike());
+            System.out.println(Tweets.get(i).getAccount() + " " + Tweets.get(i).getPost_time() + " " + Tweets.get(i).getReply() + " " + Tweets.get(i).getRetweet() + " " + Tweets.get(i).getLike());
         }
     }
 
     private static void getTweetData(WebElement article) {
-        WebElement linkWebElement = article.findElement(By.xpath(LINK_XPATH));
-        String link = linkWebElement.getAttribute("href");
-        String linkParts[] = link.split("/");
-        String tweetId = linkParts[linkParts.length - 1];
-        if(TweetIdMap.get(tweetId) != null && TweetIdMap.get(tweetId).equals(1))
+        String post_link, post_id;
+        try {
+            WebElement linkWebElement = article.findElement(By.xpath(LINK_XPATH));
+            post_link = linkWebElement.getAttribute("href");
+            String linkParts[] = post_link.split("/");
+            post_id = linkParts[linkParts.length - 1];
+            if (TweetIdMap.get(post_id) != null && TweetIdMap.get(post_id).equals(1))
+                return;
+            TweetIdMap.put(post_id, 1);
+        } catch (Exception e){
             return;
-        TweetIdMap.put(tweetId, 1);
+        }
 //        get account href
         WebElement accountWebElement = article.findElement(By.xpath(ACCOUNT_TAG));
         String account = (accountWebElement.getText().replaceAll("\n", " "));
 //        get tweet
-//        WebElement tweetTextWeb = article.findElement(By.xpath(".//div[@data-testid='tweetText']"));
-//        String tweetText = (tweetTextWeb.getText().replaceAll("\n", " "));
+        String tweetText;
+        try {
+            WebElement tweetTextWeb = article.findElement(By.xpath(".//div[@data-testid='tweetText']"));
+            tweetText = (tweetTextWeb.getText().replaceAll("\n", " "));
+        } catch (Exception e){
+            tweetText = "";
+        }
 //        get user tag
 //        WebElement userNameWebElement = article.findElement(By.xpath(USER_NAME_XPATH));
 //        String userName = (userNameWebElement.getText().replaceAll("\n", " "));
 //        get time
-        WebElement timeWebElement = article.findElement(By.xpath(TIME_XPATH));
-        String time = (timeWebElement.getAttribute("datetime").replaceAll("\n", " "));
+        String time;
+        try {
+            WebElement timeWebElement = article.findElement(By.xpath(TIME_XPATH));
+            time = (timeWebElement.getAttribute("datetime").replaceAll("\n", " "));
+        } catch (Exception e){
+            return;
+        }
 //        System.out.println(account + " " + time + " " + reply + " " + retweet + " " + like);
 //        WebElement linkWebElement = article.findElement(By.xpath(".//a[@role='link']"));
 
-
-        WebElement groupWebElement = article.findElement(By.xpath(GROUP_XPATH));
-        String group = groupWebElement.getAttribute("aria-label");
+        String group;
+        try {
+            WebElement groupWebElement = article.findElement(By.xpath(GROUP_XPATH));
+            group = groupWebElement.getAttribute("aria-label");
+        } catch (Exception e){
+            return;
+        }
         String[] Gparts = group.split(",");
         int reply = 0, retweet = 0, like = 0, bookmark = 0;
         for (String part : Gparts) {
@@ -206,10 +188,12 @@ public class selenium {
         }
         System.out.println(account + " " + time + " " + reply + " " + retweet + " " + like + " " + bookmark);
 //        System.out.println(group);
-        String tweetText = "";
+//        String tweetText = "";
 //        int like = 0;
         Tweets.add(new Tweet(account, time, tweetText, reply, retweet, like));
     }
+
+
 
     public static Double scrollDown(WebDriver driver) {
         JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
@@ -221,8 +205,9 @@ public class selenium {
             if (currPositionObject == null)
                 return -1.0;
             Double currPosition = Double.parseDouble(currPositionObject.toString());
-            if(currPosition.compareTo(AMOUNT_PER_SCROLL) < 0)
-                return -1.0;
+            if(currPosition.compareTo(FIRST_RELOAD_CONDITION * 1.0) < 0){
+                return currPosition;
+            }
             if (!lastPosition.equals(currPosition)) {
                 lastPosition = currPosition;
                 return currPosition;
@@ -253,6 +238,7 @@ public class selenium {
         options.addArguments("--disable-notifications");
         WebDriver driver = new ChromeDriver(options);
         driver.manage().window().maximize();
+        threadSleep(LONG_DELAY_MS);
         ArrayList<String> tabs = new ArrayList<String>(driver.getWindowHandles());
         driver.switchTo().window(tabs.get(1));
         driver.close();
@@ -273,7 +259,6 @@ public class selenium {
             return true;
         }
         catch (Exception e){
-            e.printStackTrace();
             return false;
         }
     }
